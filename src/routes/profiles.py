@@ -1,3 +1,5 @@
+import os
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -80,7 +82,7 @@ async def create_profile(
     except InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Authorization header format. Expected 'Bearer <token>'",
+            detail="Invalid token.",
         )
 
     token_user_id = token_data.get("user_id")
@@ -92,7 +94,6 @@ async def create_profile(
             .where(UserModel.id == token_user_id)
         )
         token_user_group_name = (await db.execute(query)).scalar_one_or_none()
-        print(f"{token_user_group_name=}")
         if token_user_group_name != "admin":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -112,11 +113,11 @@ async def create_profile(
         )
 
     try:
+        uploaded_file = profile_data.avatar
+        extension = os.path.splitext(uploaded_file.filename)[1] or ".jpg"
+        new_filename = f"avatars/{user_id}_avatar{extension}"
 
-        new_filename = f"avatars/{user_id}_avatar.jpg"
-        print(f"{new_filename=}")
-        file_bytes = await profile_data.avatar.read()
-        print(f"{file_bytes=}")
+        file_bytes = await uploaded_file.read()
         await s3_client.upload_file(file_name=new_filename, file_data=file_bytes)
     except S3FileUploadError as e:
         print(e)

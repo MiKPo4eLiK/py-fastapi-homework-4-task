@@ -98,7 +98,7 @@ async def register_user(
     Args:
         user_data (UserRegistrationRequestSchema): The registration details including email and password.
         background_tasks (BackgroundTasks): An asynchronous background task
-        settings (Request): The request object
+        settings (BaseAppSettings): Application settings object
         db (AsyncSession): The asynchronous database session.
         email_sender (EmailSenderInterface): An asynchronous EmailSender interface
 
@@ -312,15 +312,14 @@ async def request_password_reset_token(
     reset_token = PasswordResetTokenModel(user_id=cast(int, user.id))
     db.add(reset_token)
     await db.commit()
-    activation_link = "http://127.0.0.1:8000/accounts/password-reset/complete"
+    reset_link = "http://127.0.0.1:8000/accounts/password-reset/complete"
 
     background_tasks.add_task(
-        email_sender.send_password_reset_email, str(user.email), activation_link
+        email_sender.send_password_reset_email, str(user.email), reset_link
     )
 
     return MessageResponseSchema(
-        message="If you are registered, you will receive an email with instructions.",
-        token=reset_token.token,
+        message="If you are registered, you will receive an email with instructions."
     )
 
 
@@ -428,12 +427,12 @@ async def reset_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while resetting the password.",
         )
-    activation_link = "http://127.0.0.1:8000/accounts/login/"
+    login_link = "http://127.0.0.1:8000/accounts/login/"
 
     background_tasks.add_task(
         email_sender.send_password_reset_complete_email,
         str(user.email),
-        activation_link,
+        login_link,
     )
 
     return MessageResponseSchema(message="Password reset successfully.")

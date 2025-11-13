@@ -9,8 +9,8 @@ from database.models.accounts import GenderEnum
 
 
 def validate_name(name: str) -> str:
-    if re.search(r"^[A-Za-z]*$", name) is None:
-        raise ValueError(f"{name} contains non-english letters")
+    if re.search(r"^[A-Za-z]+$", name) is None:
+        raise ValueError(f"{name} contains non-english letters or is empty")
     return name.lower()
 
 
@@ -49,15 +49,17 @@ def validate_birth_date(birth_date: date) -> date:
     if birth_date.year < 1900:
         raise ValueError("Invalid birth date - year must be greater than 1900.")
 
-    age = (date.today() - birth_date).days // 365
+    today = date.today()
+    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
     if age < 18:
         raise ValueError("You must be at least 18 years old to register.")
     return birth_date
 
 
-def validate_info(info: str = None) -> str:
-    if info:
-        striped_info = info.strip()
-        if len(striped_info) != 0:
-            return striped_info
-    raise ValueError("Info field cannot be empty or contain only spaces.")
+def validate_info(info: str | None = None) -> str | None:
+    if info is None:
+        return None
+    striped_info = info.strip()
+    if len(striped_info) == 0:
+        raise ValueError("Info field cannot be empty or contain only spaces.")
+    return striped_info
