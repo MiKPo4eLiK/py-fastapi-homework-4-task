@@ -1,9 +1,22 @@
+from typing import (
+    AsyncGenerator,
+    Any,
+)
+
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import (
+    AsyncClient,
+    ASGITransport,
+)
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import get_settings, get_accounts_email_notificator, get_s3_storage_client
+from config import (
+    get_settings,
+    get_accounts_email_notificator,
+    get_s3_storage_client,
+    BaseAppSettings,
+)
 from database import (
     reset_database,
     get_db_contextmanager,
@@ -19,7 +32,7 @@ from tests.doubles.fakes.storage import FakeS3Storage
 from tests.doubles.stubs.emails import StubEmailSender
 
 
-def pytest_configure(config):
+def pytest_configure(config) -> None:
     config.addinivalue_line(
         "markers", "e2e: End-to-end tests"
     )
@@ -32,7 +45,7 @@ def pytest_configure(config):
 
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def reset_db(request):
+async def reset_db(request) -> AsyncGenerator[None, Any]:
     """
     Reset the SQLite database before each test function, except for tests marked with 'e2e'.
 
@@ -48,7 +61,7 @@ async def reset_db(request):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def reset_db_once_for_e2e(request):
+async def reset_db_once_for_e2e(request) -> None:
     """
     Reset the database once for end-to-end tests.
 
@@ -59,7 +72,7 @@ async def reset_db_once_for_e2e(request):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def settings():
+async def settings() -> BaseAppSettings:
     """
     Provide application settings.
 
@@ -69,7 +82,7 @@ async def settings():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def email_sender_stub():
+async def email_sender_stub() -> StubEmailSender:
     """
     Provide a stub implementation of the email sender.
 
@@ -79,7 +92,7 @@ async def email_sender_stub():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def s3_storage_fake():
+async def s3_storage_fake() -> FakeS3Storage:
     """
     Provide a fake S3 storage client.
 
@@ -89,7 +102,7 @@ async def s3_storage_fake():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def s3_client(settings):
+async def s3_client(settings) -> S3StorageClient:
     """
     Provide an S3 storage client.
 
@@ -104,7 +117,7 @@ async def s3_client(settings):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def client(email_sender_stub, s3_storage_fake):
+async def client(email_sender_stub, s3_storage_fake) -> AsyncGenerator[AsyncClient, Any]:
     """
     Provide an asynchronous HTTP client for testing.
 
@@ -120,7 +133,7 @@ async def client(email_sender_stub, s3_storage_fake):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def e2e_client():
+async def e2e_client() -> AsyncGenerator[AsyncClient, Any]:
     """
     Provide an asynchronous HTTP client for end-to-end tests.
 
@@ -131,7 +144,7 @@ async def e2e_client():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def db_session():
+async def db_session() -> AsyncGenerator[AsyncSession, Any]:
     """
     Provide an async database session for database interactions.
 
@@ -143,7 +156,7 @@ async def db_session():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def e2e_db_session():
+async def e2e_db_session() -> AsyncGenerator[AsyncSession, Any]:
     """
     Provide an async database session for end-to-end tests.
 
@@ -192,7 +205,7 @@ async def seed_user_groups(db_session: AsyncSession):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def seed_database(db_session):
+async def seed_database(db_session) -> AsyncGenerator[AsyncSession, Any]:
     """
     Seed the database with test data if it is empty.
 

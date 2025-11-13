@@ -1,7 +1,17 @@
-from datetime import date, datetime
-from typing import Optional, List
+from datetime import (
+    date,
+    datetime,
+)
+from typing import (
+    Optional,
+    List,
+)
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+)
 
 from database.models.movies import MovieStatusEnum
 from schemas.examples.movies import (

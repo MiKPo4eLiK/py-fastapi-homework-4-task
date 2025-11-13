@@ -1,9 +1,17 @@
 import asyncio
 import math
-from typing import List, Dict, Tuple
+from typing import (
+    List,
+    Dict,
+    Tuple,
+)
 
 import pandas as pd
-from sqlalchemy import insert, select, func
+from sqlalchemy import (
+    insert,
+    select,
+    func,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from tqdm import tqdm
@@ -17,7 +25,9 @@ from database import (
     ActorsMoviesModel,
     LanguageModel,
     MoviesLanguagesModel,
-    MovieModel, UserGroupModel, UserGroupEnum
+    MovieModel,
+    UserGroupModel,
+    UserGroupEnum,
 )
 from database import get_db_contextmanager
 
