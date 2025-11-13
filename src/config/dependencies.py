@@ -1,4 +1,5 @@
 import os
+from functools import lru_cache
 
 from fastapi import Depends
 
@@ -19,6 +20,7 @@ from storages import (
 )
 
 
+@lru_cache()
 def get_settings() -> BaseAppSettings:
     """
     Retrieve the application settings based on the current environment.
@@ -29,6 +31,11 @@ def get_settings() -> BaseAppSettings:
 
     Returns:
         BaseAppSettings: The settings instance appropriate for the current environment.
+
+    Note:
+        Using functools.lru_cache() ensures that the same settings instance is returned on
+        subsequent calls, improving performance and guaranteeing a single immutable instance
+        per process.
     """
     environment = os.getenv("ENVIRONMENT", "developing")
     if environment == "testing":

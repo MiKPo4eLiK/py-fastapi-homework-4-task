@@ -1,3 +1,4 @@
+import uuid
 from datetime import (
     datetime,
     timezone,
@@ -83,15 +84,19 @@ async def test_register_user_password_validation(client, seed_user_groups, inval
         invalid_password (str): The password to test.
         expected_error (str): The expected error message substring.
     """
+    unique_email = f"user_{uuid.uuid4()}@example.com"
+
     payload = {
-        "email": "testuser@example.com",
+        "email": unique_email,
         "password": invalid_password
     }
 
     response = await client.post("/api/v1/accounts/register/", json=payload)
+
     assert response.status_code == 422, "Expected status code 422 for invalid input."
 
     response_data = response.json()
+
     assert expected_error in str(response_data), f"Expected error message: {expected_error}"
 
 

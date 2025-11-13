@@ -29,7 +29,8 @@ from schemas.profiles import (
     ProfileResponseSchema,
 )
 from database import (
-    get_db, UserModel,
+    get_db,
+    UserModel,
     UserProfileModel,
     UserGroupModel,
 )
@@ -53,31 +54,26 @@ async def create_profile(
     db: AsyncSession = Depends(get_db),
     s3_client: S3StorageInterface = Depends(get_s3_storage_client),
 ):
-
-    query = (
-        select(UserModel)
-        .options(joinedload(UserModel.profile))
-        .where(UserModel.id == user_id)
-    )
-    user = (await db.execute(query)).scalars().first()
-
     if not header:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header is missing",
+            detail="Authorization header is missing.",
         )
-    splited_header = header.split()
-    if len(splited_header) != 2 or splited_header[0] != "Bearer":
+
+    parts = header.split()
+    if len(parts) != 2 or parts[0] != "Bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Authorization header format. Expected 'Bearer <token>'",
+            detail="Invalid Authorization header format. Expected 'Bearer <token>'.",
         )
-    token = splited_header[1]
+
+    token = parts[1]
     try:
         token_data = jwt_manager.decode_access_token(token)
     except TokenExpiredError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired.",
         )
     except InvalidTokenError:
         raise HTTPException(
@@ -86,6 +82,19 @@ async def create_profile(
         )
 
     token_user_id = token_data.get("user_id")
+
+    query = (
+        select(UserModel)
+        .options(joinedload(UserModel.profile))
+        .where(UserModel.id == user_id)
+    )
+    user = (await db.execute(query)).scalars().first()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found or not active.",
+        )
 
     if token_user_id != user_id:
         query = (
@@ -100,47 +109,40 @@ async def create_profile(
                 detail="You don't have permission to edit this profile.",
             )
 
-    if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or not active.",
-        )
-
     if user.profile:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User already has a profile.",
         )
 
-    try:
+    file_url = None
+    if profile_data.avatar:
         uploaded_file = profile_data.avatar
-        extension = os.path.splitext(uploaded_file.filename)[1] or ".jpg"
-        new_filename = f"avatars/{user_id}_avatar{extension}"
+        try:
+            extension = os.path.splitext(uploaded_file.filename)[1] or ".jpg"
+            new_filename = f"avatars/{user_id}_avatar{extension}"
 
-        file_bytes = await uploaded_file.read()
-        await s3_client.upload_file(file_name=new_filename, file_data=file_bytes)
-    except S3FileUploadError as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload avatar. Please try again later.",
-        )
-    except S3ConnectionError as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload avatar. Please try again later.",
-        )
+            file_bytes = await uploaded_file.read()
+            await s3_client.upload_file(file_name=new_filename, file_data=file_bytes)
 
-    file_url = await s3_client.get_file_url(file_name=new_filename)
-    print(f"{file_url=}")
+            file_url = await s3_client.get_file_url(file_name=new_filename)
+        except (S3FileUploadError, S3ConnectionError) as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to upload avatar. Please try again later.",
+            ) from e
+    else:
+        new_filename = None
+
     profile_dict = profile_data.model_dump(exclude_unset=True)
     profile_dict["avatar"] = new_filename
     profile_dict["user_id"] = user_id
+
     profile = UserProfileModel(**profile_dict)
     db.add(profile)
     await db.commit()
     await db.refresh(profile)
-    data = ProfileResponseSchema.model_validate(profile, from_attributes=True)
-    data.avatar = file_url
-    return data
+
+    response_data = ProfileResponseSchema.model_validate(profile, from_attributes=True)
+    response_data.avatar = file_url
+    return response_data

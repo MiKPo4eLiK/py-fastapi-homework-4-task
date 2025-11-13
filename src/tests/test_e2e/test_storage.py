@@ -4,7 +4,10 @@ from io import BytesIO
 from PIL import Image
 from sqlalchemy import select
 
-from database import UserModel, UserProfileModel
+from database import (
+    UserModel,
+    UserProfileModel,
+)
 
 
 @pytest.mark.e2e
@@ -31,9 +34,11 @@ async def test_create_user_profile(e2e_client, e2e_db_session, settings, s3_clie
     assert user, f"User {user_email} should exist!"
 
     login_url = "/api/v1/accounts/login/"
-    login_response = await e2e_client.post(login_url, json={"email": user_email, "password": user_password})
+    login_response = await e2e_client.post(
+        login_url,
+        json={"email": user_email, "password": user_password}
+    )
     assert login_response.status_code == 201, f"Expected 201, got {login_response.status_code}"
-
     tokens = login_response.json()
     access_token = tokens["access_token"]
 
@@ -42,7 +47,7 @@ async def test_create_user_profile(e2e_client, e2e_db_session, settings, s3_clie
     img.save(img_bytes, format="JPEG")
     img_bytes.seek(0)
 
-    profile_url = f"/api/v1/profiles/users/{user.id}/profile/"
+    profile_url = f"/api/v1/users/{user.id}/profile/"
     headers = {"Authorization": f"Bearer {access_token}"}
 
     files = {
@@ -56,8 +61,8 @@ async def test_create_user_profile(e2e_client, e2e_db_session, settings, s3_clie
 
     profile_response = await e2e_client.post(profile_url, headers=headers, files=files)
     assert profile_response.status_code == 201, f"Expected 201, got {profile_response.status_code}"
-
     profile_data = profile_response.json()
+
     assert profile_data["first_name"] == "john"
     assert profile_data["last_name"] == "doe"
     assert profile_data["gender"] == "man"

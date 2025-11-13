@@ -69,6 +69,7 @@ async def reset_db_once_for_e2e(request) -> None:
     ensuring the database is reset before running E2E tests.
     """
     await reset_database()
+    return None
 
 
 @pytest_asyncio.fixture(scope="session")

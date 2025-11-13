@@ -12,12 +12,10 @@ from sqlalchemy.orm import joinedload
 from database import (
     get_db,
     MovieModel,
-)
-from database import (
     CountryModel,
     GenreModel,
     ActorModel,
-    LanguageModel
+    LanguageModel,
 )
 from schemas import (
     MovieListResponseSchema,
